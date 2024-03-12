@@ -1,6 +1,11 @@
 import './App.scss'
 import avatar from './images/bozai.png'
 import { useState} from 'react'
+import _, { takeRight } from 'lodash'
+import classNames from 'classnames'
+import {v4 as uuidV4} from 'uuid'
+import dayjs from 'dayjs'
+import { useRef } from 'react'
 
 /**
  * 评论列表的渲染和操作
@@ -35,7 +40,7 @@ const defaultList = [
     },
     content: 'Cruel Summer',
     ctime: '11-13 11:29',
-    like: 88,
+    like: 77,
   },
   {
     rpid: 1,
@@ -70,12 +75,12 @@ const user = {
 
 // 导航 Tab 数组
 const tabs = [
-  { type: 'hot', text: '最热' },
-  { type: 'time', text: '最新' },
+  { type: 'hot', text: 'Hot' },
+  { type: 'time', text: 'Latest' },
 ]
 
 const App = () => {
-  const [commentList, setCommentList] = useState(defaultList)
+  const [commentList, setCommentList] = useState(_.orderBy(defaultList, 'like', 'desc'))
 
   // del function
   const handleDel = (id) => {
@@ -83,20 +88,77 @@ const App = () => {
     // filter the comment list
     setCommentList(commentList.filter(item => item.rpid !== id))
   }
+
+  // tab change function
+  const [type, setType] = useState('hot')
+  const handleTabChange = (type) => {
+    setType(type)
+    // order function
+    if (type === 'hot') {
+      // order by likes
+      // lodash: 封装了很多函数和方法的工具库
+      setCommentList(_.orderBy(commentList, 'like', 'desc'))
+    } else {
+      // order by time
+      setCommentList(_.orderBy(commentList, 'ctime', 'desc'))
+
+    }
+  }
+
+
+  // publish comments
+  const [content, setContent] = useState('')
+  const inputRef = useRef(null)
+  const handlePublish = () => {
+    setCommentList([
+      ...commentList, // 打开这个数组
+      {
+        // 评论id
+        rpid: uuidV4(),
+        // 用户信息
+        user: {
+          uid: '13258165',
+          avatar: '',
+          uname: 'Jay Zhou',
+        },
+        // 评论内容
+        content: content,
+        // 评论时间
+        // ctime: '10-16 08:15',  // 格式化 m-d h:minutes
+        ctime: dayjs(new Date()).format('MM-DD hh:mm'),
+        like: 22,
+      }
+    ])
+    // clear content in the input box
+    setContent('')
+    // 重新聚焦
+    inputRef.current.focus()
+
+  }
+
+  // clear the input content
+  const clearContent = () => {
+
+  }
+  
   return (
     <div className="app">
       {/* 导航 Tab */}
       <div className="reply-navigation">
         <ul className="nav-bar">
           <li className="nav-title">
-            <span className="nav-title-text">评论</span>
+            <span className="nav-title-text">Comments</span>
             {/* 评论数量 */}
             <span className="total-reply">{10}</span>
           </li>
           <li className="nav-sort">
             {/* 高亮类名： active */}
-            <span className='nav-item'>最新</span>
-            <span className='nav-item'>最热</span>
+            {tabs.map(item => <span 
+              key={item.type} 
+              onClick={() => handleTabChange(item.type)} 
+              // className={`nav-item ${type === item.type && 'active'}`}
+              className={classNames('nav-item', { active: type === item.type})}
+            >{item.text}</span>)}
           </li>
         </ul>
       </div>
@@ -114,11 +176,16 @@ const App = () => {
             {/* 评论框 */}
             <textarea
               className="reply-box-textarea"
-              placeholder="发一条友善的评论"
+              placeholder="publish a comment here"
+              ref={inputRef}
+              value={content}
+              onChange={(e) => setContent(e.target.value)}
             />
             {/* 发布按钮 */}
             <div className="reply-box-send">
-              <div className="send-text">发布</div>
+            
+              <div className="send-text" onClick={handlePublish}>publish</div>
+              
             </div>
           </div>
         </div>
